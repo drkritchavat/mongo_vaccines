@@ -28,6 +28,9 @@ df_notnull = df[df[cid].notnull()]
 df_notnull['cid_hash'] = df_notnull[cid].str.encode('ascii').map(lambda x: hashlib.md5(x).hexdigest()).str.upper() + ':' + df_notnull[cid].str.slice(stop=1) + df_notnull[cid].str.slice(start=-1)
 cid_hash = df_notnull['cid_hash'].dropna().drop_duplicates().tolist()
 
+
+df = df.merge(df_notnull.set_index(cid)[['cid_hash']], left_on=cid, right_on=cid, how='left')
+
 print("Connecting to MongoDB...")
 client = pymongo.MongoClient(uri)
 db = client.moph_immunization_center
@@ -69,7 +72,7 @@ vac_wide['num_dose'] = vac.reset_index().groupby('cid')['dose'].count()
 
 # merge vac_wide with original data
 print(f"Saving data to {dest}...")
-result = df.merge(vac_wide, left_on='cid_hash', right_index=True, how='left').drop(columns=['cid_hash'])
-result.to_csv(dest, index=False)
+result = df.merge(vac_wide, left_on='cid_hash', right_index=True, how='left').drop(columns='cid_hash')
+result.to_csv(dest, index=False, encoding='utf-8-sig')
 
 client.close()
