@@ -45,7 +45,12 @@ fields = {
     "$project": {
         "_id": 0, 
         "cid": 1, 
-        "immunization_date": 1, 
+        "immunization_date": {
+            "$dateToString": {
+                "date": "$immunization_date",
+                "format": "%Y-%m-%d"
+            }
+        }, 
         "vaccine_manufacturer": 1
         }
     }
