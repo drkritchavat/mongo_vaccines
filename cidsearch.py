@@ -24,8 +24,9 @@ print(df.iloc[:2])
 cid = input("\nEnter cid column name:\n")
 
 print("Hashing CID (MD5)...")
-df['cid_hash'] = df[cid].str.encode('ascii').map(lambda x: hashlib.md5(x).hexdigest()).str.upper() + ':' +df[cid].str.slice(stop=1) + df[cid].str.slice(start=-1)
-cid_hash = df['cid_hash'].dropna().drop_duplicates().tolist()
+df_notnull = df[df[cid].notnull()]
+df_notnull['cid_hash'] = df_notnull[cid].str.encode('ascii').map(lambda x: hashlib.md5(x).hexdigest()).str.upper() + ':' + df_notnull[cid].str.slice(stop=1) + df_notnull[cid].str.slice(start=-1)
+cid_hash = df_notnull['cid_hash'].dropna().drop_duplicates().tolist()
 
 print("Connecting to MongoDB...")
 client = pymongo.MongoClient(uri)
