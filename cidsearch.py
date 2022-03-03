@@ -31,9 +31,6 @@ cid_hash = df_notnull['cid_hash'].dropna().drop_duplicates().tolist()
 
 df = df.merge(df_notnull.set_index(cid)[['cid_hash']], left_on=cid, right_on=cid, how='left')
 
-
-print(cid_hash)
-
 print("Connecting to MongoDB...")
 client = pymongo.MongoClient(uri)
 db = client.moph_immunization_center
