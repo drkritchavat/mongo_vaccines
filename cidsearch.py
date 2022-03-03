@@ -25,11 +25,14 @@ cid = input("\nEnter cid column name:\n")
 
 print("Hashing CID (MD5)...")
 df_notnull = df[df[cid].notnull()]
-df_notnull['cid_hash'] = df_notnull[cid].str.encode('ascii').map(lambda x: hashlib.md5(x).hexdigest()).str.upper() + ':' + df_notnull[cid].str.slice(stop=1) + df_notnull[cid].str.slice(start=-1)
+df_notnull['cid_hash'] = df_notnull[cid].str.encode('utf8').map(lambda x: hashlib.md5(x).hexdigest()).str.upper() + ':' + df_notnull[cid].str.slice(stop=1) + df_notnull[cid].str.slice(start=-1)
 cid_hash = df_notnull['cid_hash'].dropna().drop_duplicates().tolist()
 
 
 df = df.merge(df_notnull.set_index(cid)[['cid_hash']], left_on=cid, right_on=cid, how='left')
+
+
+print(cid_hash)
 
 print("Connecting to MongoDB...")
 client = pymongo.MongoClient(uri)
