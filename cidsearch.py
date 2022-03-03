@@ -1,0 +1,74 @@
+import pandas as pd
+import hashlib
+import pymongo
+import json
+import sys
+
+# config
+with open("uri.txt") as f:
+    uri = f.read()
+#filename = 'deaths.csv'
+#src = sys.argv[1]
+#dest = sys.argv[2]
+
+src = input("Enter source file  path (CSV)...\n")
+dest = input("Enter destination file path (CSV)...\n")
+
+
+print(f"\nSource file: {src}")
+print(f"\nDestination file: {dest}")
+
+df = pd.read_csv(src, dtype=str)
+
+print(df.iloc[:2])
+cid = input("\nEnter cid column name:\n")
+
+print("Hashing CID (MD5)...")
+df['cid_hash'] = df[cid].str.encode('ascii').map(lambda x: hashlib.md5(x).hexdigest()).str.upper() + ':' +df[cid].str.slice(stop=1) + df[cid].str.slice(start=-1)
+cid_hash = df['cid_hash'].dropna().drop_duplicates().tolist()
+
+print("Connecting to MongoDB...")
+client = pymongo.MongoClient(uri)
+db = client.moph_immunization_center
+
+match = {
+    "$match": {
+        "cid": {"$in": cid_hash } 
+        } 
+    }
+
+fields = {
+    "$project": {
+        "_id": 0, 
+        "cid": 1, 
+        "immunization_date": 1, 
+        "vaccine_manufacturer": 1
+        }
+    }
+
+sort = {
+    "$sort": {
+        "cid": 1,
+        "immunization_date": 1
+    }
+}
+
+print("Query data from MongoDB...")
+query = db.visit_immunization.aggregate([match, fields, sort])
+vac = pd.DataFrame(query)
+
+print("Transforming data...")
+vac['dose'] = vac.groupby('cid').cumcount() + 1
+
+vac = vac.set_index(['cid', 'dose'])
+vac.columns.name = 'vaccines'
+vac_wide = vac.stack().unstack(['dose', 'vaccines'])
+vac_wide.columns = [f"{column[1]}_{column[0]}" for column in vac_wide.columns]
+vac_wide['num_dose'] = vac.reset_index().groupby('cid')['dose'].count()
+
+# merge vac_wide with original data
+print(f"Saving data to {dest}...")
+result = df.merge(vac_wide, left_on='cid_hash', right_index=True, how='left').drop(columns=['cid_hash'])
+result.to_csv(dest, index=False)
+
+client.close()
