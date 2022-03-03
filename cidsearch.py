@@ -1,8 +1,6 @@
 import pandas as pd
 import hashlib
 import pymongo
-import json
-import sys
 
 # config
 with open("uri.txt") as f:
